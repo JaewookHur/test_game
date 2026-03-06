@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>중1 함수와 포물선: 대포 게임 완성본</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <style>
+        body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background: #222; color: white; font-family: 'Malgun Gothic', sans-serif; flex-direction: column; }
+        #game-container { border: 4px solid #444; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        .controls { margin-top: 15px; background: #333; padding: 15px; border-radius: 8px; text-align: center; line-height: 1.6; }
+        b { color: #ffeb3b; }
+    </style>
+</head>
+<body>
+    <h2>🚀 함수로 배우는 포물선 운동</h2>
+    <div id="game-container"></div>
+    <div class="controls">
+        <b>[조작법]</b> 화면의 오른쪽 멀리 클릭할수록 대포가 더 세게 날아갑니다!<br>
+        (클릭한 위치 = 발사 각도와 초기 속도 결정)
+    </div>
+
+<script>
+const config = {
+    type: Phaser.AUTO,
+    width: 800,
+    height: 450,
+    parent: 'game-container',
+    backgroundColor: '#87CEEB', 
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 500 }, // [함수 공부 포인트 1] 중력(g)의 크기
+            debug: false
+        }
+    },
+    scene: { preload: preload, create: create, update: update }
+};
+
+let cannon, target, graphics;
+const game = new Phaser.Game(config);
+
+function preload() {}
+
+function create() {
+    // 1. 바닥 (Ground)
+    const ground = this.add.rectangle(400, 430, 800, 40, 0x654321);
+    this.physics.add.existing(ground, true);
+
+    // 2. 대포 몸체 (Cannon)
+    cannon = this.add.rectangle(60, 400, 50, 30, 0x333333);
+    
+    // 3. 목표물 (Target) - 위치를 고정하거나 랜덤하게 바꿀 수 있음
+    target = this.add.circle(700, 400, 20, 0xff0000);
+    this.physics.add.existing(target, true);
+
+    // 4. 궤적을 그리기 위한 그래픽 도구
+    graphics = this.add.graphics();
+
+    // 5. 발사 이벤트 (클릭 시 실행)
+    this.input.on('pointerdown', (pointer) => {
+        fire(this, pointer.x, pointer.y);
+    });
+}
+
+function fire(scene, tx, ty) {
+    // 포탄 생성 (노란색 공)
+    const ball = scene.add.circle(60, 400, 8, 0xffff00);
+    scene.physics.add.existing(ball);
+    
+    // [함수 공부 포인트 2] 초기 속도와 각도 계산
+    // 대포 위치(60, 400)에서 클릭한 위치(tx, ty) 사이의 각도 계산
+    const angle = Phaser.Math.Angle.Between(60, 400, tx, ty);
+    
+    // 두 점 사이의 거리를 구해서 '발사 힘(속도)'으로 사용 (최대 속도 제한 포함)
+    let distance = Phaser.Math.Distance.Between(60, 400, tx, ty);
+    const speed = Math.min(distance * 2.5, 1000); // 거리에 2.5를 곱해 힘을 보정
+
+    // 계산된 각도와 속도를 포탄의 물리 엔진에 적용
+    scene.physics.velocityFromRotation(angle, speed, ball.body.velocity);
+    
+    // 탄성 설정 (바닥에 튀게 하고 싶으면 조절)
+    ball.body.setBounce(0.5);
+    ball.body.setCollideWorldBounds(true);
+
+    // 과녁과의 충돌 판정
+    scene.physics.add.overlap(ball, target, () => {
+        ball.destroy();
+        alert("🎉 명중! 함수의 원리를 이해했군요!");
+    });
+
+    // 5초 뒤에 포탄 제거 (메모리 관리)
+    scene.time.delayedCall(5000, () => { ball.destroy(); });
+}
+
+function update() {
+    // 실시간으로 마우스 위치에 따른 예상 발사 각도(직선)를 보여주는 기능 (선택사항)
+    graphics.clear();
+    graphics.lineStyle(2, 0xffffff, 0.5);
+    graphics.lineBetween(60, 400, this.input.activePointer.x, this.input.activePointer.y);
+}
+</script>
+</body>
+</html>
